@@ -10,12 +10,15 @@
 # http://derflounder.wordpress.com/2014/04/23/
 # caspercheck-an-auto-repair-process-for-casper-agents/
 #
+# Edited by: Michael George 2015/07/20
+#
 ############################################################ 
 
 ADUser=AD_account_with_join_permissions
 ADPass=above_AD_account_password
 internal_server_address=address_of_an_interally_resolved_website
 ADdomain=desired_domain
+DomainNode=desired_domain_Network_Account_Server
 log_location="/var/log/adBinding.log"
  
 ############################################################
@@ -65,11 +68,11 @@ CheckSiteNetwork (){
 # Ascertain Bind status by testing a lookup on the AD account that will be used to bind.
 checkBind (){
  
-domainAns=`dscl /Active\ Directory/GRCS/All\ Domains -read /Users/${ADUser} dsAttrTypeNative:userPrincipalName`
+domainAns=`dscl /Active\ Directory/${DomainNode}/All\ Domains -read /Users/${ADUser} dsAttrTypeNative:userPrincipalName`
 
 
 if [[ $domainAns =~ "is not valid" ]]; then
-    ScriptLogging "AD user lookup failed for user $userName.  Proceeding to rebind."
+    ScriptLogging "AD user lookup failed for user $userName.  Proceeding to unBind."
 else
     adComputer=`dsconfigad -show | awk '/Computer Account/{print $NF}' | tr '[a-z]' '[A-Z]' | sed 's/\$$//'`
     ScriptLogging "AD User lookup successful for user $userName.  Machine is bound as $adComputer."
@@ -97,10 +100,28 @@ ScriptLogging "Time synced with $timeServer."
   
 }
 
+# Check existing binding and unbind if nessecary
+unBind () {
+
+domainBound=`dsconfigad -show`
+
+if [[ $domainBound =~ "Active Directory Forest" ]]; then
+    dsconfigad -force -remove -u $ADUser -p $ADPass
+    ScriptLogging "Computer should now be unbound. Continuing on to reBind"
+else
+    ScriptLogging "Computer is not bound. Continuing on to reBind"
+
+fi
+
+}
+
 # Add the mac to the domain
 reBind () {
 
-compName=$(uname -n)
+# Grab computer name
+compName=$(uname -n|cut -d'.' -f1|cut -c1-15)
+
+# Bind to AD
 dsconfigad -force -a $compName -u $ADUser -p $ADPass -domain $ADdomain
 
 # Pause to allow binding
@@ -124,7 +145,13 @@ dsconfigad -useuncpath disable
 dsconfigad -shell "/bin/bash"
 
 # Enable packet signing
-dsconfigad -packetsign require
+dsconfigad -packetsign disable
+dsconfigad -packetencrypt disable
+
+# Other
+dsconfigad -protocol afp
+dsconfigad -passinterval 0
+
 }
 
 
@@ -182,6 +209,7 @@ if [[ "${NETWORKUP}" == "-YES-" ]]; then
  getIP
  resetTime
  checkBind
+ unBind
  reBind
  fi
  
