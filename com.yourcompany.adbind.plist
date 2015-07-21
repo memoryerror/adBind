@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.grcs.adbind.plist</string>
+    <string>com.YourCompany.adbind.plist</string>
     <key>ProgramArguments</key>
     <array>
         <string>sh</string>
