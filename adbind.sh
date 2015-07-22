@@ -72,10 +72,10 @@ domainAns=`dscl /Active\ Directory/${DomainNode}/All\ Domains -read /Users/${ADU
 
 
 if [[ $domainAns =~ "is not valid" ]]; then
-    ScriptLogging "AD user lookup failed for user $userName.  Proceeding to unBind."
+    ScriptLogging "AD user lookup failed for user $ADUser.  Proceeding to unBind."
 else
     adComputer=`dsconfigad -show | awk '/Computer Account/{print $NF}' | tr '[a-z]' '[A-Z]' | sed 's/\$$//'`
-    ScriptLogging "AD User lookup successful for user $userName.  Machine is bound as $adComputer."
+    ScriptLogging "AD User lookup successful for user $ADUser.  Machine is bound as $adComputer."
     ScriptLogging "======== Exiting adBind ========"
     exit 0
 
